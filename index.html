@@ -280,25 +280,25 @@
 (() => {
   // ---------- Activity library (chunking building blocks) ----------
   const ACTIVITIES = {
-    welcome:     { label: 'Welcome',                 chunk: 'Opening',  colour: 'bg-slate-400',   mins: 5,  task: 'Welcome students, take the register and share the outcomes for the session.', resource: 'Slides' },
-    starter:     { label: 'Starter',                 chunk: 'Opening',  colour: 'bg-slate-400',   mins: 10, task: 'Starter question or scenario to activate prior knowledge.', resource: 'Slides' },
-    setup:       { label: 'Set-up',                  chunk: 'Opening',  colour: 'bg-slate-400',   mins: 5,  task: 'Students log in and open the software and files needed for the session.', resource: 'SOL' },
-    recap:       { label: 'Recap',                   chunk: 'Opening',  colour: 'bg-slate-400',   mins: 10, task: 'Low-stakes retrieval of the previous session\'s content.', resource: 'Quiz' },
-    lecture:     { label: 'Mini-Lecture',            chunk: 'Input',    colour: 'bg-sky-500',     mins: 15, task: 'Short focused explanation of one concept.', resource: 'Slides' },
-    demo:        { label: 'Demo',                    chunk: 'Input',    colour: 'bg-sky-500',     mins: 10, task: 'Live demonstration, thinking aloud through the steps.', resource: '' },
-    example:     { label: 'Example',                 chunk: 'Input',    colour: 'bg-sky-500',     mins: 10, task: 'Walk through a worked example and highlight the key decisions.', resource: 'Slides' },
-    guided:      { label: 'Guided practice',         chunk: 'Practice', colour: 'bg-emerald-500', mins: 15, task: 'Students attempt a similar task with scaffolding and support.', resource: 'Notes' },
-    independent: { label: 'Independent task',        chunk: 'Practice', colour: 'bg-emerald-500', mins: 20, task: 'Students work individually on an applied task.', resource: '' },
-    pair:        { label: 'Pair/group activity',     chunk: 'Practice', colour: 'bg-emerald-500', mins: 20, task: 'Collaborative task applying the concept.', resource: '' },
-    check:       { label: 'Check for understanding', chunk: 'Check',    colour: 'bg-amber-500',   mins: 5,  task: 'Hinge question / cold call to check understanding before moving on.', resource: '' },
-    feedback:    { label: 'Feedback & Discussion',   chunk: 'Check',    colour: 'bg-amber-500',   mins: 10, task: 'Groups feed back; address misconceptions.', resource: '' },
-    share:       { label: 'Share',                   chunk: 'Check',    colour: 'bg-amber-500',   mins: 10, task: 'Students share their work with the class or another group.', resource: '' },
-    brk:         { label: 'Break',                   chunk: 'Break',    colour: 'bg-rose-400',    mins: 10, task: 'Comfort break.', resource: '' },
-    closeRecap:  { label: 'Recap',                   chunk: 'Close',    colour: 'bg-violet-500',  mins: 5,  task: 'Recap what has been covered in this session.', resource: 'Slides' },
-    summary:     { label: 'Summary',                 chunk: 'Close',    colour: 'bg-violet-500',  mins: 10, task: 'Summarise key points and link back to the outcomes.', resource: 'Slides' },
-    nextsteps:   { label: 'Next steps',              chunk: 'Close',    colour: 'bg-violet-500',  mins: 5,  task: 'Preview the next session and what students should bring or prepare.', resource: 'SOL' },
-    directed:    { label: 'Directed Learning',       chunk: 'Close',    colour: 'bg-violet-500',  mins: 5,  task: 'Set the directed learning task to complete before the next session.', resource: 'SOL' },
-    custom:      { label: 'Custom activity',         chunk: 'Other',    colour: 'bg-slate-300',   mins: 10, task: '', resource: '' }
+    welcome:     { label: 'Welcome',                 chunk: 'Opening',  colour: 'bg-slate-400',   mins: 5,  task: 'Welcome students, take the register and share the outcomes for the session.' },
+    starter:     { label: 'Starter',                 chunk: 'Opening',  colour: 'bg-slate-400',   mins: 10, task: 'Starter question or scenario to activate prior knowledge.' },
+    setup:       { label: 'Set-up',                  chunk: 'Opening',  colour: 'bg-slate-400',   mins: 5,  task: 'Students log in and open the software and files needed for the session.' },
+    recap:       { label: 'Recap',                   chunk: 'Opening',  colour: 'bg-slate-400',   mins: 10, task: 'Low-stakes retrieval of the previous session\'s content.' },
+    lecture:     { label: 'Mini-Lecture',            chunk: 'Input',    colour: 'bg-sky-500',     mins: 15, task: 'Short focused explanation of one concept.' },
+    demo:        { label: 'Demo',                    chunk: 'Input',    colour: 'bg-sky-500',     mins: 10, task: 'Live demonstration, thinking aloud through the steps.' },
+    example:     { label: 'Example',                 chunk: 'Input',    colour: 'bg-sky-500',     mins: 10, task: 'Walk through a worked example and highlight the key decisions.' },
+    guided:      { label: 'Guided practice',         chunk: 'Practice', colour: 'bg-emerald-500', mins: 15, task: 'Students attempt a similar task with scaffolding and support.' },
+    independent: { label: 'Independent task',        chunk: 'Practice', colour: 'bg-emerald-500', mins: 20, task: 'Students work individually on an applied task.' },
+    pair:        { label: 'Pair/group activity',     chunk: 'Practice', colour: 'bg-emerald-500', mins: 20, task: 'Collaborative task applying the concept.' },
+    check:       { label: 'Check for understanding', chunk: 'Check',    colour: 'bg-amber-500',   mins: 5,  task: 'Hinge question / cold call to check understanding before moving on.' },
+    feedback:    { label: 'Feedback & Discussion',   chunk: 'Check',    colour: 'bg-amber-500',   mins: 10, task: 'Groups feed back; address misconceptions.' },
+    share:       { label: 'Share',                   chunk: 'Check',    colour: 'bg-amber-500',   mins: 10, task: 'Students share their work with the class or another group.' },
+    brk:         { label: 'Break',                   chunk: 'Break',    colour: 'bg-rose-400',    mins: 10, task: 'Comfort break.' },
+    closeRecap:  { label: 'Recap',                   chunk: 'Close',    colour: 'bg-violet-500',  mins: 5,  task: 'Recap what has been covered in this session.' },
+    summary:     { label: 'Summary',                 chunk: 'Close',    colour: 'bg-violet-500',  mins: 10, task: 'Summarise key points and link back to the outcomes.' },
+    nextsteps:   { label: 'Next steps',              chunk: 'Close',    colour: 'bg-violet-500',  mins: 5,  task: 'Preview the next session and what students should bring or prepare.' },
+    directed:    { label: 'Directed Learning',       chunk: 'Close',    colour: 'bg-violet-500',  mins: 5,  task: 'Set the directed learning task to complete before the next session.' },
+    custom:      { label: 'Custom activity',         chunk: 'Other',    colour: 'bg-slate-300',   mins: 10, task: '' }
   };
   // Activity types from earlier versions, mapped onto the current list when an old plan is opened.
   const LEGACY_TYPES = { hook: 'starter', input: 'lecture', quiz: 'check', plenary: 'summary', exit: 'summary', preview: 'nextsteps' };
@@ -330,7 +330,7 @@
   }
   function newRow([type, mins, task]) {
     const a = ACTIVITIES[type];
-    return { id: uid(), type, mins: mins ?? a.mins, task: task ?? a.task, resources: defaultResources(type) };
+    return { id: uid(), type, mins: mins ?? a.mins, task: task ?? a.task, resources: [] };
   }
 
   function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
@@ -372,8 +372,6 @@
         `<option value="${k}" ${k === selected ? 'selected' : ''}>${a.label}</option>`).join('') + '</optgroup>'
     ).join('');
   }
-  function defaultResources(type) { return ACTIVITIES[type]?.resource ? [ACTIVITIES[type].resource] : []; }
-  const sameList = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
   function addResourceOptions(r) {
     return `<option value="">+ Add resource…</option>` +
       RESOURCES.filter(x => !r.resources.includes(x)).map(x => `<option>${esc(x)}</option>`).join('') +
@@ -929,7 +927,6 @@
       const prev = ACTIVITIES[row.type], next = ACTIVITIES[e.target.value];
       // Only replace defaults the user hasn't customised
       if (!row.task || row.task === prev.task) row.task = next.task;
-      if (!row.resources.length || sameList(row.resources, defaultResources(row.type))) row.resources = defaultResources(e.target.value);
       if (row.mins === prev.mins) row.mins = next.mins;
       row.type = e.target.value;
       renderRows();

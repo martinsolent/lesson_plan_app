@@ -55,8 +55,8 @@ The page loads Tailwind CSS and Google Fonts from the internet, so it needs a co
 Each row in the table is one activity:
 
 - **Timings:** start and end clock times, calculated automatically from the start time and the durations of the rows above. The coloured bar shows which *chunk* the activity belongs to (see [Activity library](#activity-library)).
-- **Task:** choose an activity type and edit the description. Changing the type fills in a suggested description and resource.
-- **Resource:** add one or more resources from the dropdown, which become removable chips. Choose **Other…** to type your own.
+- **Task:** choose an activity type and edit the description. Changing the type fills in a suggested description.
+- **Resource:** starts empty. Add one or more resources from the dropdown, which become removable chips. Choose **Other…** to type your own.
 - **Duration:** 5–90 minutes.
 - **Row actions:** ↑ / ↓ reorder, ⧉ duplicate, ✕ delete.
 
@@ -184,7 +184,7 @@ All configuration is in the `<script>` block of `index.html`:
 
 | Constant | Controls |
 | --- | --- |
-| `ACTIVITIES` | Activity types: label, chunk, colour, default minutes, default task text and default resource |
+| `ACTIVITIES` | Activity types: label, chunk, colour, default minutes and default task text |
 | `RESOURCES` | Resources offered in the dropdown (sorted automatically) |
 | `DURATIONS` | Duration options in minutes |
 | `EXTEND_SECS` | How much time **+5 min** adds |
