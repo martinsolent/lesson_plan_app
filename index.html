@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson Plan Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  if (window.tailwind) tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['"DM Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace']
+        }
+      }
+    }
+  };
+</script>
+<style id="appStyles">
+  /* Embedded styles: small additions Tailwind utilities don't cover */
+  details > summary { list-style: none; }
+  details > summary::-webkit-details-marker { display: none; }
+  select, input, textarea {
+    font: inherit;
+  }
+  textarea { resize: vertical; min-height: 2.5rem; }
+  .row-enter { animation: rowIn .18s ease-out; }
+  @keyframes rowIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+  /* Chunk colour bar on the left of each row */
+  .chunk-bar { width: 4px; border-radius: 9999px; }
+
+  /* ---------- Lesson timer ---------- */
+  .progress-fill { background: #0ea5e9; transition: width .25s linear, background-color .3s; }
+  [data-phase="warn"] .progress-fill { background: #f59e0b; }
+  [data-phase="over"] .progress-fill { background: #e11d48; }
+  #timerCard { transition: border-color .3s, box-shadow .3s; }
+  #timerCard[data-phase="warn"] { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.25); }
+  #timerCard[data-phase="over"] { border-color: #e11d48; box-shadow: 0 0 0 3px rgba(225,29,72,.25); }
+  #timerCard[data-phase="warn"] #tCountdown, #timerCard[data-phase="warn"] #tStatus { color: #d97706; }
+  #timerCard[data-phase="over"] #tCountdown, #timerCard[data-phase="over"] #tStatus { color: #e11d48; }
+  #teach { background: #0f172a; transition: background-color .4s; }
+  #teach[data-phase="warn"] { background: #451a03; }
+  #teach[data-phase="over"] { background: #4c0519; }
+  #teach[data-phase="warn"] #teachStatus { color: #fcd34d; }
+  #teach[data-phase="over"] #teachStatus { color: #fda4af; }
+  [data-phase="over"] .countdown { animation: pulse 1.2s ease-in-out infinite; }
+  [data-paused="true"] .countdown { opacity: .45; }
+  @keyframes pulse { 50% { opacity: .45; } }
+  .flash { animation: flash .45s ease-in-out 3; }
+  @keyframes flash { 50% { filter: brightness(1.7); } }
+  #rows tr[data-live="done"] { opacity: .5; }
+  #rows tr[data-live="current"] > td { background: rgba(14,165,233,.10); }
+  #rows tr[data-live="current"] > td:first-child { box-shadow: inset 4px 0 0 #0ea5e9; }
+  #rows tr[data-live="current"][data-phase="warn"] > td { background: rgba(245,158,11,.15); }
+  #rows tr[data-live="current"][data-phase="warn"] > td:first-child { box-shadow: inset 4px 0 0 #f59e0b; }
+  #rows tr[data-live="current"][data-phase="over"] > td { background: rgba(225,29,72,.12); }
+  #rows tr[data-live="current"][data-phase="over"] > td:first-child { box-shadow: inset 4px 0 0 #e11d48; }
+  .tbtn { border-radius: .5rem; padding: .5rem .8rem; font-size: .875rem; font-weight: 500; line-height: 1.25rem; }
+  .tbtn[hidden], #teach[hidden] { display: none !important; }
+
+  @media print {
+    body { background: #fff !important; }
+    .no-print { display: none !important; }
+    .print-plain select,
+    .print-plain input,
+    .print-plain textarea {
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      appearance: none;
+      -webkit-appearance: none;
+      color: #0f172a !important;
+    }
+    .print-card { box-shadow: none !important; border-color: #cbd5e1 !important; }
+    table { page-break-inside: auto; }
+    tr { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-sans antialiased min-h-screen">
+
+<div class="max-w-6xl mx-auto px-4 py-6 sm:py-10 print-plain">
+
+  <!-- Toolbar -->
+  <div class="no-print relative z-40 flex flex-wrap items-center gap-2 mb-6">
+    <h1 class="text-sm font-semibold tracking-wide uppercase text-slate-500 dark:text-slate-400 mr-auto">Lesson Plan Builder</h1>
+    <select id="templateSelect" class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+      <option value="">Load template…</option>
+      <option value="intro2h">Module introduction (2 hr, chunked)</option>
+      <option value="practical2h">Practical workshop (2 hr)</option>
+      <option value="lecture1h">Lecture (1 hr, chunked)</option>
+      <option value="blank">Blank plan</option>
+    </select>
+    <button data-action="export" class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800" title="Save this plan as a file you can open again later">Save plan</button>
+    <label class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer" title="Open a plan file you saved earlier">
+      Open plan<input id="importFile" type="file" accept=".json,application/json" class="hidden">
+    </label>
+    <details id="downloadMenu" class="relative">
+      <summary class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer select-none">Download HTML ▾</summary>
+      <div class="absolute right-0 z-20 mt-2 w-72 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg p-1.5 text-sm">
+        <button data-action="downloadEditable" class="w-full text-left rounded-lg px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <span class="block font-medium">Editable page</span>
+          <span class="block text-xs text-slate-500 dark:text-slate-400">This whole tool with the current plan saved inside it</span>
+        </button>
+        <button data-action="downloadStatic" class="w-full text-left rounded-lg px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <span class="block font-medium">Static plan (read-only)</span>
+          <span class="block text-xs text-slate-500 dark:text-slate-400">Plain HTML table, no scripts — easy to embed in a site or VLE</span>
+        </button>
+      </div>
+    </details>
+    <button data-action="print" class="rounded-lg bg-sky-600 hover:bg-sky-700 text-white px-3 py-2 text-sm font-medium">Print / PDF</button>
+    <button data-action="theme" aria-label="Toggle dark mode" class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">◐</button>
+  </div>
+
+  <!-- Lesson timer -->
+  <section id="timerBar" class="no-print sticky top-0 z-30 -mx-4 px-4 pt-2 pb-4 mb-2 bg-slate-50/90 dark:bg-slate-950/90 backdrop-blur">
+    <div id="timerCard" class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm px-4 py-3">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <span id="tDot" class="inline-block w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+            <span id="tIndex">Lesson timer</span>
+            <span id="tStatus" class="font-medium"></span>
+          </div>
+          <div id="tActivity" class="font-semibold text-base truncate">Press Start when the class begins</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap gap-x-3">
+            <span id="tNext"></span><span id="tDrift" class="font-medium"></span><span id="tFinish"></span>
+          </div>
+        </div>
+        <div id="tCountdown" class="countdown font-mono text-3xl sm:text-4xl font-medium tabular-nums">--:--</div>
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button data-timer="back" class="tbtn border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800" title="Previous activity (←)">◀ Back</button>
+          <button data-timer="pause" class="tbtn border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800" title="Pause / resume (Space)">Pause</button>
+          <button data-timer="extend" class="tbtn border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800" title="Add 5 minutes to this activity">+5 min</button>
+          <button data-timer="next" class="tbtn bg-sky-600 hover:bg-sky-700 text-white" title="Next activity (→)">Next ▶</button>
+          <button data-timer="start" class="tbtn bg-emerald-600 hover:bg-emerald-700 text-white">▶ Start lesson</button>
+          <button data-timer="teach" class="tbtn border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800" title="Full-screen teaching view">⛶ Teach mode</button>
+          <details id="alertMenu" class="relative">
+            <summary class="tbtn border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer select-none" title="Alert settings">🔔 Alerts</summary>
+            <div class="absolute right-0 z-40 mt-2 w-72 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg p-3 text-sm space-y-3">
+              <label class="flex items-center justify-between gap-2">Warn before the end
+                <select id="optWarn" class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1">
+                  <option value="1">1 min</option><option value="2">2 min</option><option value="3">3 min</option><option value="5">5 min</option>
+                </select>
+              </label>
+              <label class="flex items-center gap-2"><input id="optSound" type="checkbox" class="w-4 h-4 accent-sky-600"> Chime</label>
+              <label class="flex items-start gap-2"><input id="optNotify" type="checkbox" class="w-4 h-4 mt-0.5 accent-sky-600">
+                <span>Desktop notifications<span class="block text-xs text-slate-500 dark:text-slate-400">Reach you while you're presenting in another window</span></span></label>
+              <p id="notifyNote" class="text-xs text-rose-600" hidden></p>
+              <button data-timer="testSound" class="tbtn border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 w-full">Test alert</button>
+            </div>
+          </details>
+          <button data-timer="stop" class="tbtn text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40" title="Stop the timer">■ Stop</button>
+        </div>
+      </div>
+      <div class="mt-2 h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+        <div id="tProgress" class="progress-fill h-full rounded-full" style="width:0%"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Plan card -->
+  <div class="print-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+
+    <!-- Header -->
+    <header class="px-5 sm:px-8 pt-8 pb-6 text-center border-b border-slate-200 dark:border-slate-800">
+      <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-3xl sm:text-4xl font-semibold text-sky-700 dark:text-sky-400">
+        <span>Week</span>
+        <select id="week" aria-label="Week number" class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1 text-sky-700 dark:text-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500"></select>
+        <span class="text-slate-400">–</span>
+        <span>Class</span>
+        <select id="classNo" aria-label="Class number" class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1 text-sky-700 dark:text-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500"></select>
+      </div>
+
+      <div class="mt-4 flex flex-wrap items-center justify-center gap-2 text-xl sm:text-2xl font-medium">
+        <span>Lesson Plan –</span>
+        <input id="moduleCode" type="text" placeholder="Module CODE" aria-label="Module code"
+          class="w-44 text-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1 font-mono uppercase focus:outline-none focus:ring-2 focus:ring-sky-500">
+      </div>
+
+      <div class="mt-3 flex flex-wrap items-center justify-center gap-2 text-base sm:text-lg">
+        <input id="sessionTitle" type="text" placeholder="Session title" aria-label="Session title"
+          class="w-72 max-w-full text-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-sky-500">
+        <span>(</span>
+        <select id="sessionLength" aria-label="Class length" class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-sky-500">
+          <option value="60">1-hour</option>
+          <option value="90">1.5-hour</option>
+          <option value="120">2-hour</option>
+          <option value="180">3-hour</option>
+        </select>
+        <span>class)</span>
+      </div>
+
+      <div class="mt-4 flex flex-wrap items-center justify-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+        <label class="flex items-center gap-2">Start time
+          <input id="startTime" type="time" class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1 font-mono focus:outline-none focus:ring-2 focus:ring-sky-500">
+        </label>
+      </div>
+    </header>
+
+    <!-- Time budget -->
+    <div class="no-print px-5 sm:px-8 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
+      <div class="flex items-center justify-between text-sm mb-2">
+        <span class="font-medium">Time planned</span>
+        <span id="budgetText" class="font-mono"></span>
+      </div>
+      <div class="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+        <div id="budgetBar" class="h-full rounded-full transition-all duration-300"></div>
+      </div>
+    </div>
+
+    <!-- Learning outcomes -->
+    <div class="px-5 sm:px-8 py-4 border-b border-slate-200 dark:border-slate-800">
+      <label for="outcomes" class="block text-sm font-semibold mb-1">Learning outcomes for this class</label>
+      <textarea id="outcomes" rows="2" placeholder="By the end of the class students will be able to…"
+        class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-100 dark:bg-slate-800/70 text-left">
+          <tr>
+            <th class="px-4 py-3 font-semibold w-28">Timings</th>
+            <th class="px-4 py-3 font-semibold">Task</th>
+            <th class="px-4 py-3 font-semibold w-56">Resource</th>
+            <th class="px-4 py-3 font-semibold w-32">Duration</th>
+            <th class="no-print px-2 py-3 w-24"><span class="sr-only">Row actions</span></th>
+          </tr>
+        </thead>
+        <tbody id="rows" class="divide-y divide-slate-200 dark:divide-slate-800"></tbody>
+      </table>
+    </div>
+
+    <div class="no-print px-5 sm:px-8 py-4 flex flex-wrap items-center gap-2 border-t border-slate-200 dark:border-slate-800">
+      <select id="quickAdd" class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"></select>
+      <button data-action="add" class="rounded-lg bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 text-sm font-medium">+ Add activity</button>
+      <span class="ml-auto text-xs text-slate-500 dark:text-slate-400">Changes save automatically in this browser.</span>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div id="legend" class="no-print mt-6 flex flex-wrap gap-3 text-xs text-slate-600 dark:text-slate-400"></div>
+</div>
+
+<!-- Teach mode (full screen) -->
+<div id="teach" class="no-print fixed inset-0 z-50 text-white flex flex-col p-5 sm:p-10 overflow-auto" hidden>
+  <div class="flex flex-wrap items-center gap-3 text-sm text-slate-300">
+    <span id="teachMeta" class="font-medium"></span>
+    <span class="ml-auto flex flex-wrap gap-x-4"><span id="teachDrift" class="font-medium"></span><span id="teachFinish"></span></span>
+    <button data-timer="exitTeach" class="tbtn bg-white/10 hover:bg-white/20 text-white" title="Exit (Esc)">✕ Exit</button>
+  </div>
+  <div class="flex-1 flex flex-col items-center justify-center text-center gap-4 py-6">
+    <div class="flex items-center gap-2 text-sm uppercase tracking-widest text-slate-300">
+      <span id="teachDot" class="inline-block w-3 h-3 rounded-full bg-slate-400"></span><span id="teachChunk"></span><span id="teachIndex"></span>
+    </div>
+    <h2 id="teachActivity" class="text-4xl sm:text-6xl font-semibold"></h2>
+    <div id="teachCountdown" class="countdown font-mono font-medium leading-none tabular-nums" style="font-size:min(24vw,15rem)">--:--</div>
+    <div id="teachStatus" class="text-xl font-medium text-slate-300 min-h-[1.75rem]"></div>
+    <div class="w-full max-w-3xl h-2.5 rounded-full bg-white/15 overflow-hidden">
+      <div id="teachProgress" class="progress-fill h-full rounded-full" style="width:0%"></div>
+    </div>
+    <p id="teachTask" class="max-w-3xl text-lg sm:text-2xl text-slate-200 whitespace-pre-line"></p>
+    <div id="teachResources" class="flex flex-wrap justify-center gap-2"></div>
+  </div>
+  <div class="flex flex-wrap items-center gap-3">
+    <div id="teachNext" class="text-lg text-slate-300"></div>
+    <div class="ml-auto flex flex-wrap gap-2">
+      <button data-timer="back" class="tbtn bg-white/10 hover:bg-white/20 text-white text-base px-5 py-3">◀ Back</button>
+      <button data-timer="pause" class="tbtn bg-white/10 hover:bg-white/20 text-white text-base px-5 py-3">Pause</button>
+      <button data-timer="extend" class="tbtn bg-white/10 hover:bg-white/20 text-white text-base px-5 py-3">+5 min</button>
+      <button data-timer="next" class="tbtn bg-sky-500 hover:bg-sky-600 text-white text-base px-6 py-3">Next ▶</button>
+      <button data-timer="start" class="tbtn bg-emerald-500 hover:bg-emerald-600 text-white text-base px-6 py-3">▶ Start lesson</button>
+    </div>
+  </div>
+  <p class="mt-3 text-xs text-slate-400">Keys: → / Page Down next · ← / Page Up back · Space pause · Esc exit</p>
+</div>
+
+<script>
+(() => {
+  // ---------- Activity library (chunking building blocks) ----------
+  const ACTIVITIES = {
+    welcome:     { label: 'Welcome',                 chunk: 'Opening',  colour: 'bg-slate-400',   mins: 5,  task: 'Welcome students, take the register and share the outcomes for the session.', resource: 'Slides' },
+    starter:     { label: 'Starter',                 chunk: 'Opening',  colour: 'bg-slate-400',   mins: 10, task: 'Starter question or scenario to activate prior knowledge.', resource: 'Slides' },
+    setup:       { label: 'Set-up',                  chunk: 'Opening',  colour: 'bg-slate-400',   mins: 5,  task: 'Students log in and open the software and files needed for the session.', resource: 'SOL' },
+    recap:       { label: 'Recap',                   chunk: 'Opening',  colour: 'bg-slate-400',   mins: 10, task: 'Low-stakes retrieval of the previous session\'s content.', resource: 'Quiz' },
+    lecture:     { label: 'Mini-Lecture',            chunk: 'Input',    colour: 'bg-sky-500',     mins: 15, task: 'Short focused explanation of one concept.', resource: 'Slides' },
+    demo:        { label: 'Demo',                    chunk: 'Input',    colour: 'bg-sky-500',     mins: 10, task: 'Live demonstration, thinking aloud through the steps.', resource: '' },
+    example:     { label: 'Example',                 chunk: 'Input',    colour: 'bg-sky-500',     mins: 10, task: 'Walk through a worked example and highlight the key decisions.', resource: 'Slides' },
+    guided:      { label: 'Guided practice',         chunk: 'Practice', colour: 'bg-emerald-500', mins: 15, task: 'Students attempt a similar task with scaffolding and support.', resource: 'Notes' },
+    independent: { label: 'Independent task',        chunk: 'Practice', colour: 'bg-emerald-500', mins: 20, task: 'Students work individually on an applied task.', resource: '' },
+    pair:        { label: 'Pair/group activity',     chunk: 'Practice', colour: 'bg-emerald-500', mins: 20, task: 'Collaborative task applying the concept.', resource: '' },
+    check:       { label: 'Check for understanding', chunk: 'Check',    colour: 'bg-amber-500',   mins: 5,  task: 'Hinge question / cold call to check understanding before moving on.', resource: '' },
+    feedback:    { label: 'Feedback & Discussion',   chunk: 'Check',    colour: 'bg-amber-500',   mins: 10, task: 'Groups feed back; address misconceptions.', resource: '' },
+    share:       { label: 'Share',                   chunk: 'Check',    colour: 'bg-amber-500',   mins: 10, task: 'Students share their work with the class or another group.', resource: '' },
+    brk:         { label: 'Break',                   chunk: 'Break',    colour: 'bg-rose-400',    mins: 10, task: 'Comfort break.', resource: '' },
+    closeRecap:  { label: 'Recap',                   chunk: 'Close',    colour: 'bg-violet-500',  mins: 5,  task: 'Recap what has been covered in this session.', resource: 'Slides' },
+    summary:     { label: 'Summary',                 chunk: 'Close',    colour: 'bg-violet-500',  mins: 10, task: 'Summarise key points and link back to the outcomes.', resource: 'Slides' },
+    nextsteps:   { label: 'Next steps',              chunk: 'Close',    colour: 'bg-violet-500',  mins: 5,  task: 'Preview the next session and what students should bring or prepare.', resource: 'SOL' },
+    directed:    { label: 'Directed Learning',       chunk: 'Close',    colour: 'bg-violet-500',  mins: 5,  task: 'Set the directed learning task to complete before the next session.', resource: 'SOL' },
+    custom:      { label: 'Custom activity',         chunk: 'Other',    colour: 'bg-slate-300',   mins: 10, task: '', resource: '' }
+  };
+  // Activity types from earlier versions, mapped onto the current list when an old plan is opened.
+  const LEGACY_TYPES = { hook: 'starter', input: 'lecture', quiz: 'check', plenary: 'summary', exit: 'summary', preview: 'nextsteps' };
+
+  // Resource dropdown: alphabetical, with "Other" (free text) at the end.
+  const RESOURCES = ['SOL', 'Notes', 'Slides', 'Quiz', 'Figma', 'Miro', 'OBS Studio', 'GitHub', 'GitHub Desktop',
+    'Pen & Paper', 'UX Lab webcams', 'UX Lab computer', 'UX Lab', 'Sticky notes', 'Graph paper', 'Mobile phone']
+    .sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }));
+  const OTHER = '__other';
+
+  const DURATIONS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 75, 90];
+
+  const TEMPLATES = {
+    intro2h: { length: 120, title: 'Module Introduction', rows: [
+      ['welcome', 5], ['starter', 10], ['lecture', 15, 'Module overview: aims, structure, assessment and key dates.'],
+      ['check', 5], ['pair', 20, 'Groups explore the module page and identify questions about the assessment.'],
+      ['feedback', 10], ['brk', 10], ['lecture', 15], ['guided', 15], ['summary', 10], ['nextsteps', 5]
+    ]},
+    practical2h: { length: 120, title: 'Practical Workshop', rows: [
+      ['welcome', 5], ['recap', 10], ['demo', 15], ['guided', 20], ['brk', 10],
+      ['independent', 35], ['share', 15], ['directed', 10]
+    ]},
+    lecture1h: { length: 60, title: 'Lecture', rows: [
+      ['recap', 5], ['lecture', 15], ['check', 5], ['example', 15], ['pair', 10], ['summary', 10]
+    ]},
+    blank: { length: 120, title: '', rows: [] }
+  };
+
+  const $ = id => document.getElementById(id);
+  const uid = () => Math.random().toString(36).slice(2, 9);
+
+  // A downloaded editable copy carries its plan in <script id="embeddedPlan">.
+  // Each copy gets its own storage key so copies opened from disk don't overwrite each other.
+  let EMBEDDED = null;
+  try { const el = $('embeddedPlan'); if (el) EMBEDDED = JSON.parse(el.textContent); } catch (e) {}
+  const STORE_KEY = 'lessonPlanBuilder.v1' + (EMBEDDED?.planId ? '.' + EMBEDDED.planId : '');
+
+  // ---------- State ----------
+  let state = defaultState();
+
+  function defaultState() {
+    const s = { week: 12, classNo: 1, moduleCode: '', sessionTitle: 'Module Introduction',
+      sessionLength: 120, startTime: '09:00', outcomes: '', rows: [] };
+    s.rows = TEMPLATES.intro2h.rows.map(rowFromTemplate);
+    return s;
+  }
+  function rowFromTemplate([type, mins, task]) {
+    const a = ACTIVITIES[type];
+    return { id: uid(), type, mins: mins ?? a.mins, task: task ?? a.task, resources: defaultResources(type) };
+  }
+
+  function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
+  function normaliseRows() {
+    delete state.room;
+    state.rows.forEach(r => {
+      r.id ||= uid();
+      r.mins = +r.mins || 10;
+      if (LEGACY_TYPES[r.type]) r.type = LEGACY_TYPES[r.type];
+      if (!ACTIVITIES[r.type]) r.type = 'custom';
+      // Older plans stored a single resource string; convert it to a list.
+      if (!Array.isArray(r.resources)) {
+        r.resources = (r.resource || '').split(',').map(x => x.trim()).filter(Boolean);
+      }
+      delete r.resource; delete r.resOther;
+    });
+  }
+  function load() {
+    if (EMBEDDED?.state) state = Object.assign(defaultState(), EMBEDDED.state);
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (raw) state = Object.assign(defaultState(), JSON.parse(raw));
+    } catch (e) {}
+    normaliseRows();
+  }
+
+  // ---------- Helpers ----------
+  const toMins = t => { const [h, m] = (t || '00:00').split(':').map(Number); return h * 60 + m; };
+  const fmt = m => { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const inputCls = 'w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500';
+  const iconBtn = 'p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white disabled:opacity-30 disabled:pointer-events-none';
+
+  function activityOptions(selected) {
+    const groups = {};
+    Object.entries(ACTIVITIES).forEach(([k, a]) => (groups[a.chunk] ||= []).push([k, a]));
+    return Object.entries(groups).map(([g, items]) =>
+      `<optgroup label="${g}">` + items.map(([k, a]) =>
+        `<option value="${k}" ${k === selected ? 'selected' : ''}>${a.label}</option>`).join('') + '</optgroup>'
+    ).join('');
+  }
+  function defaultResources(type) { return ACTIVITIES[type]?.resource ? [ACTIVITIES[type].resource] : []; }
+  const sameList = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+  function addResourceOptions(r) {
+    return `<option value="">+ Add resource…</option>` +
+      RESOURCES.filter(x => !r.resources.includes(x)).map(x => `<option>${esc(x)}</option>`).join('') +
+      `<option value="${OTHER}">Other…</option>`;
+  }
+  function resourceChips(r) {
+    return r.resources.map((x, i) => `
+      <span class="inline-flex items-center gap-1 rounded-full bg-sky-50 dark:bg-sky-950/50 text-sky-800 dark:text-sky-200 border border-sky-200 dark:border-sky-800 pl-2.5 pr-1 py-0.5 text-xs print:border-0 print:bg-transparent print:p-0">
+        ${esc(x)}<button type="button" data-res-remove="${i}" class="no-print rounded-full w-4 h-4 leading-none hover:bg-sky-200 dark:hover:bg-sky-800" aria-label="Remove ${esc(x)}">×</button>
+      </span>`).join('');
+  }
+  function durationOptions(selected) {
+    const list = DURATIONS.includes(selected) ? DURATIONS : [...DURATIONS, selected].sort((a, b) => a - b);
+    return list.map(d => `<option value="${d}" ${d === selected ? 'selected' : ''}>${d} min</option>`).join('');
+  }
+
+  // ---------- Render ----------
+  function renderHeader() {
+    $('week').innerHTML = Array.from({ length: 52 }, (_, i) => `<option ${i + 1 === +state.week ? 'selected' : ''}>${i + 1}</option>`).join('');
+    $('classNo').innerHTML = Array.from({ length: 5 }, (_, i) => `<option ${i + 1 === +state.classNo ? 'selected' : ''}>${i + 1}</option>`).join('');
+    $('moduleCode').value = state.moduleCode;
+    $('sessionTitle').value = state.sessionTitle;
+    $('sessionLength').value = String(state.sessionLength);
+    $('startTime').value = state.startTime;
+    $('outcomes').value = state.outcomes;
+    $('quickAdd').innerHTML = activityOptions('lecture');
+    document.title = baseTitle();
+  }
+  function baseTitle() { return `Week ${state.week} – Class ${state.classNo} | Lesson Plan`; }
+
+  function renderRows(newId) {
+    let t = toMins(state.startTime);
+    const tbody = $('rows');
+    if (!state.rows.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-10 text-center text-slate-500">No activities yet. Add one below or load a template.</td></tr>`;
+      renderBudget(); return;
+    }
+    tbody.innerHTML = state.rows.map((r, i) => {
+      const a = ACTIVITIES[r.type] || ACTIVITIES.custom;
+      const start = t, end = t + r.mins; t = end;
+      return `
+      <tr data-id="${r.id}" class="${r.id === newId ? 'row-enter' : ''} align-top ${r.type === 'brk' ? 'bg-rose-50/60 dark:bg-rose-950/20' : ''}">
+        <td class="px-4 py-3">
+          <div class="flex gap-2">
+            <div class="chunk-bar ${a.colour}"></div>
+            <div class="font-mono text-xs leading-5">
+              <div class="font-medium">${fmt(start)}</div>
+              <div class="text-slate-500">${fmt(end)}</div>
+            </div>
+          </div>
+        </td>
+        <td class="px-4 py-3 space-y-2">
+          <select data-field="type" aria-label="Activity type" class="${inputCls} font-medium">${activityOptions(r.type)}</select>
+          <textarea data-field="task" rows="2" aria-label="Task description" placeholder="Describe the task…" class="${inputCls}">${esc(r.task)}</textarea>
+        </td>
+        <td class="px-4 py-3">
+          <div class="flex flex-wrap gap-1.5 ${r.resources.length ? 'mb-2' : ''}">${resourceChips(r)}</div>
+          <select data-field="resourceAdd" aria-label="Add resource" class="no-print ${inputCls}">${addResourceOptions(r)}</select>
+          <div data-other-wrap class="no-print" hidden><div class="mt-2 flex gap-1">
+            <input data-field="resourceOther" type="text" aria-label="Other resource" placeholder="Type a resource…" class="${inputCls}">
+            <button type="button" data-res-add-other class="rounded-lg bg-sky-600 hover:bg-sky-700 text-white px-2.5 text-xs font-medium">Add</button>
+          </div></div>
+        </td>
+        <td class="px-4 py-3">
+          <select data-field="mins" aria-label="Duration" class="${inputCls} font-mono">${durationOptions(r.mins)}</select>
+        </td>
+        <td class="no-print px-2 py-3">
+          <div class="flex flex-wrap gap-0.5 justify-end">
+            <button data-row="up" class="${iconBtn}" title="Move up" ${i === 0 ? 'disabled' : ''}>↑</button>
+            <button data-row="down" class="${iconBtn}" title="Move down" ${i === state.rows.length - 1 ? 'disabled' : ''}>↓</button>
+            <button data-row="dup" class="${iconBtn}" title="Duplicate">⧉</button>
+            <button data-row="del" class="${iconBtn} hover:!text-rose-600" title="Delete">✕</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+    renderBudget();
+    tick();
+  }
+
+  function renderBudget() {
+    const used = state.rows.reduce((s, r) => s + r.mins, 0);
+    const total = +state.sessionLength;
+    const pct = Math.min(100, (used / total) * 100);
+    const diff = total - used;
+    const bar = $('budgetBar');
+    bar.style.width = pct + '%';
+    bar.className = 'h-full rounded-full transition-all duration-300 ' +
+      (diff < 0 ? 'bg-rose-500' : diff === 0 ? 'bg-emerald-500' : 'bg-sky-500');
+    $('budgetText').textContent = `${used} / ${total} min` +
+      (diff > 0 ? ` · ${diff} min left` : diff < 0 ? ` · ${-diff} min over` : ' · on time ✓');
+    $('budgetText').className = 'font-mono ' + (diff < 0 ? 'text-rose-600' : diff === 0 ? 'text-emerald-600' : '');
+    save();
+  }
+
+  function renderLegend() {
+    const seen = {};
+    Object.values(ACTIVITIES).forEach(a => { if (!seen[a.chunk]) seen[a.chunk] = a.colour; });
+    $('legend').innerHTML = Object.entries(seen).map(([c, col]) =>
+      `<span class="inline-flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full ${col}"></span>${c}</span>`).join('');
+  }
+
+  // ---------- Download as HTML ----------
+  const fileBase = () => `${(state.moduleCode || 'module').trim().replace(/[^\w-]+/g, '-')}-week${state.week}-class${state.classNo}`;
+
+  function downloadFile(name, text, type = 'text/html') {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  // Whole tool, with the current plan embedded so it opens exactly as it is now.
+  function buildEditableHtml() {
+    const root = document.documentElement.cloneNode(true);
+    root.classList.remove('dark');
+    if (!root.className) root.removeAttribute('class');
+    // Drop styles Tailwind injected at runtime; it regenerates them on load.
+    root.querySelectorAll('head style:not(#appStyles)').forEach(s => s.remove());
+    // Clear everything the script renders, so the copy starts clean.
+    ['rows', 'legend', 'week', 'classNo', 'quickAdd', 'budgetText'].forEach(id => {
+      const el = root.querySelector('#' + id); if (el) el.innerHTML = '';
+    });
+    const bar = root.querySelector('#budgetBar');
+    if (bar) { bar.removeAttribute('style'); bar.className = 'h-full rounded-full transition-all duration-300'; }
+    root.querySelector('#downloadMenu')?.removeAttribute('open');
+    root.querySelector('#alertMenu')?.removeAttribute('open');
+    root.querySelector('#teach')?.setAttribute('hidden', '');
+    root.querySelectorAll('[data-phase],[data-paused]').forEach(el => { el.removeAttribute('data-phase'); el.removeAttribute('data-paused'); });
+    root.querySelector('body').removeAttribute('style');
+    root.querySelector('#embeddedPlan')?.remove();
+    root.querySelector('title').textContent = `Week ${state.week} – Class ${state.classNo} | Lesson Plan`;
+
+    const data = document.createElement('script');
+    data.type = 'application/json';
+    data.id = 'embeddedPlan';
+    data.textContent = JSON.stringify({ planId: uid(), savedAt: new Date().toISOString(), state }, null, 2)
+      .replace(/</g, '\\u003c');
+    root.querySelector('head').appendChild(data);
+    return '<!DOCTYPE html>\n' + root.outerHTML;
+  }
+
+  // Plain read-only version: no scripts or external dependencies.
+  function buildStaticHtml() {
+    const colours = { Opening: '#94a3b8', Input: '#0ea5e9', Practice: '#10b981', Check: '#f59e0b', Break: '#fb7185', Close: '#8b5cf6', Other: '#cbd5e1' };
+    const lengthLabel = $('sessionLength').selectedOptions[0]?.textContent || `${state.sessionLength}-min`;
+    let t = toMins(state.startTime);
+    const rows = state.rows.map(r => {
+      const a = ACTIVITIES[r.type] || ACTIVITIES.custom;
+      const start = t, end = t + r.mins; t = end;
+      return `
+      <tr${r.type === 'brk' ? ' class="brk"' : ''}>
+        <td class="time" style="border-left:4px solid ${colours[a.chunk] || colours.Other}">${fmt(start)}–${fmt(end)}</td>
+        <td><strong>${esc(a.label)}</strong>${r.task ? `<br>${esc(r.task).replace(/\n/g, '<br>')}` : ''}</td>
+        <td>${r.resources.map(esc).join(', ')}</td>
+        <td class="time">${r.mins} min</td>
+      </tr>`;
+    }).join('');
+    const total = state.rows.reduce((s, r) => s + r.mins, 0);
+    const meta = state.startTime ? `Start ${esc(state.startTime)}` : '';
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week ${esc(state.week)} – Class ${esc(state.classNo)} | Lesson Plan</title>
+<style>
+  body { font-family: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif; color: #0f172a; background: #fff; margin: 0; padding: 24px 16px; line-height: 1.5; }
+  .plan { max-width: 960px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 20px; }
+  h1 { color: #0369a1; font-size: 2rem; margin: 0 0 4px; font-weight: 600; }
+  h2 { font-size: 1.25rem; margin: 0 0 2px; font-weight: 500; }
+  .sub { margin: 0; }
+  .meta { color: #475569; font-size: .875rem; margin-top: 6px; }
+  .outcomes { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: .9rem; }
+  .outcomes strong { display: block; margin-bottom: 2px; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f1f5f9; }
+  .time { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .8rem; white-space: nowrap; }
+  tr.brk td { background: #fff1f2; }
+  tfoot td { font-weight: 600; background: #f8fafc; }
+</style>
+</head>
+<body>
+<div class="plan">
+  <header>
+    <h1>Week ${esc(state.week)} – Class ${esc(state.classNo)}</h1>
+    <h2>Lesson Plan – ${esc(state.moduleCode ? state.moduleCode.toUpperCase() : 'Module CODE')}</h2>
+    <p class="sub">${esc(state.sessionTitle)} (${esc(lengthLabel)} class)</p>
+    ${meta ? `<p class="meta">${meta}</p>` : ''}
+  </header>
+  ${state.outcomes ? `<div class="outcomes"><strong>Learning outcomes</strong>${esc(state.outcomes).replace(/\n/g, '<br>')}</div>` : ''}
+  <table>
+    <thead><tr><th style="width:8.5rem">Timings</th><th>Task</th><th style="width:12rem">Resource</th><th style="width:6rem">Duration</th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="4">No activities planned.</td></tr>'}
+    </tbody>
+    <tfoot><tr><td colspan="3">Total</td><td class="time">${total} min</td></tr></tfoot>
+  </table>
+</div>
+</body>
+</html>
+`;
+  }
+
+  // ---------- Lesson timer ----------
+  // Uses real timestamps (not counting ticks), so it stays accurate in background tabs
+  // and survives a page reload or a laptop briefly sleeping.
+  const TIMER_KEY = STORE_KEY + '.timer';
+  const PREFS_KEY = STORE_KEY + '.timerPrefs';
+  const EXTEND_SECS = 5 * 60;
+  let prefs = { warnMins: 2, sound: true, notify: false };
+  let timer = null; // { rowId, lastIndex, curStart, pausedAt, ext, actual: {rowId: secs}, warned, ended, finished }
+  let audioCtx = null;
+
+  try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')); } catch (e) {}
+  try { timer = JSON.parse(localStorage.getItem(TIMER_KEY) || 'null'); } catch (e) {}
+
+  const saveTimer = () => { try { localStorage.setItem(TIMER_KEY, JSON.stringify(timer)); } catch (e) {} };
+  const savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) {} };
+  const nowMs = () => Date.now();
+  const mmss = secs => { secs = Math.max(0, Math.floor(secs)); return String(Math.floor(secs / 60)).padStart(2, '0') + ':' + String(secs % 60).padStart(2, '0'); };
+  const clock = ms => { const d = new Date(ms); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  const warnSecs = () => prefs.warnMins * 60;
+
+  function curIndex() {
+    if (!timer) return -1;
+    let i = state.rows.findIndex(r => r.id === timer.rowId);
+    if (i < 0 && state.rows.length) {
+      // The current activity was deleted from the plan: carry on with the one now in its place.
+      i = Math.min(timer.lastIndex ?? 0, state.rows.length - 1);
+      timer.rowId = state.rows[i].id;
+      Object.assign(timer, { curStart: nowMs(), pausedAt: timer.pausedAt ? nowMs() : null, ext: 0, warned: false, ended: false });
+      saveTimer();
+    }
+    return i;
+  }
+  const elapsed = () => ((timer.pausedAt ?? nowMs()) - timer.curStart) / 1000;
+  const target = row => row.mins * 60 + (timer.ext || 0);
+
+  // Positive = behind plan, negative = ahead. Extensions and overruns count as "behind".
+  function driftSecs(i) {
+    let d = 0;
+    for (let k = 0; k < i; k++) {
+      const r = state.rows[k];
+      d += (timer.actual[r.id] ?? r.mins * 60) - r.mins * 60;
+    }
+    if (timer.finished) return d;
+    const row = state.rows[i];
+    return d + Math.max(0, elapsed() - row.mins * 60);
+  }
+  function driftText(i) {
+    const m = Math.round(driftSecs(i) / 60);
+    if (m === 0) return { text: 'On schedule', cls: 'text-emerald-600' };
+    return m > 0 ? { text: `${m} min behind`, cls: 'text-rose-600' } : { text: `${-m} min ahead`, cls: 'text-sky-600' };
+  }
+  function projectedEnd(i) {
+    if (timer.finished) return null;
+    const row = state.rows[i];
+    let secs = Math.max(0, target(row) - elapsed());
+    for (let k = i + 1; k < state.rows.length; k++) secs += state.rows[k].mins * 60;
+    return nowMs() + secs * 1000;
+  }
+
+  // --- Alerts ---
+  function ensureAudio() {
+    try {
+      audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    } catch (e) {}
+  }
+  function chime(kind) {
+    if (!prefs.sound || !audioCtx) return;
+    const notes = kind === 'end' ? [880, 698.5, 523.3] : [659.3, 880];
+    const t0 = audioCtx.currentTime + 0.02;
+    notes.forEach((f, i) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      const t = t0 + i * 0.22;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.35, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(t); o.stop(t + 1);
+    });
+  }
+  function notify(title, body) {
+    if (!prefs.notify || !('Notification' in window) || Notification.permission !== 'granted') return;
+    try { new Notification(title, { body, tag: 'lesson-timer', renotify: true, silent: true }); } catch (e) {}
+  }
+  function flash() {
+    ['timerCard', 'teach'].forEach(id => {
+      const el = $(id); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+    });
+  }
+  function alertFor(kind, i) {
+    const row = state.rows[i], a = ACTIVITIES[row.type] || ACTIVITIES.custom;
+    const next = state.rows[i + 1];
+    const nextText = next ? `Next: ${(ACTIVITIES[next.type] || ACTIVITIES.custom).label}` : 'This is the last activity.';
+    chime(kind); flash();
+    notify(kind === 'warn' ? `${prefs.warnMins} min left: ${a.label}` : `Time's up: ${a.label}`, nextText);
+  }
+
+  // --- Controls ---
+  function startTimer() {
+    if (!state.rows.length) return;
+    ensureAudio();
+    timer = { rowId: state.rows[0].id, lastIndex: 0, curStart: nowMs(), pausedAt: null, ext: 0, actual: {}, warned: false, ended: false, finished: false };
+    saveTimer(); tick();
+  }
+  function goTo(i, resumeFrom = 0) {
+    const row = state.rows[i];
+    timer.rowId = row.id; timer.lastIndex = i;
+    timer.curStart = nowMs() - resumeFrom * 1000;
+    timer.pausedAt = null; timer.ext = 0;
+    const remaining = row.mins * 60 - resumeFrom;
+    timer.warned = remaining <= warnSecs(); timer.ended = remaining <= 0;
+  }
+  function nextActivity() {
+    if (!timer || timer.finished) return;
+    const i = curIndex();
+    timer.actual[timer.rowId] = elapsed();
+    if (i >= state.rows.length - 1) { timer.finished = true; timer.pausedAt = nowMs(); }
+    else goTo(i + 1);
+    saveTimer(); tick();
+  }
+  function prevActivity() {
+    if (!timer) return;
+    if (timer.finished) {
+      timer.finished = false;
+      const i = state.rows.length - 1, id = state.rows[i].id;
+      const t = timer.actual[id] || 0; delete timer.actual[id];
+      goTo(i, t);
+    } else {
+      const i = curIndex(); if (i <= 0) return;
+      const prev = state.rows[i - 1];
+      const t = timer.actual[prev.id] || 0;
+      delete timer.actual[prev.id];
+      goTo(i - 1, t);
+    }
+    saveTimer(); tick();
+  }
+  function togglePause() {
+    if (!timer || timer.finished) return;
+    if (timer.pausedAt) { timer.curStart += nowMs() - timer.pausedAt; timer.pausedAt = null; }
+    else timer.pausedAt = nowMs();
+    saveTimer(); tick();
+  }
+  function extend() {
+    if (!timer || timer.finished) return;
+    timer.ext = (timer.ext || 0) + EXTEND_SECS;
+    const remaining = target(state.rows[curIndex()]) - elapsed();
+    if (remaining > warnSecs()) timer.warned = false;
+    if (remaining > 0) timer.ended = false;
+    saveTimer(); tick();
+  }
+  function stopTimer() {
+    if (!timer) return;
+    if (!timer.finished && !confirm('Stop the lesson timer? Progress for this lesson will be cleared.')) return;
+    timer = null; saveTimer(); document.title = baseTitle(); tick();
+  }
+  function openTeach() {
+    ensureAudio();
+    $('teach').hidden = false;
+    document.body.style.overflow = 'hidden';
+    try { $('teach').requestFullscreen?.().catch(() => {}); } catch (e) {}
+    tick();
+  }
+  function closeTeach() {
+    $('teach').hidden = true;
+    document.body.style.overflow = '';
+    try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+  }
+
+  // --- Display ---
+  const setText = (id, t) => { const el = $(id); if (el.textContent !== t) el.textContent = t; };
+  function setDot(id, colour) { $(id).className = `inline-block rounded-full ${id === 'teachDot' ? 'w-3 h-3' : 'w-2.5 h-2.5'} ${colour}`; }
+
+  function tick() {
+    const idle = !timer, rows = state.rows;
+    const i = idle ? 0 : curIndex();
+    const finished = !idle && timer.finished;
+    const row = rows[i];
+    const a = row ? (ACTIVITIES[row.type] || ACTIVITIES.custom) : null;
+
+    // Buttons (both the bar and Teach mode)
+    document.querySelectorAll('[data-timer]').forEach(b => {
+      const k = b.dataset.timer;
+      let show = true;
+      if (k === 'start') show = idle;
+      if (k === 'pause' || k === 'extend' || k === 'next') show = !idle && !finished;
+      if (k === 'back') show = !idle && (finished || i > 0);
+      if (k === 'stop') show = !idle;
+      b.hidden = !show;
+      if (k === 'pause') b.textContent = timer?.pausedAt ? '▶ Resume' : '❚❚ Pause';
+      if (k === 'next') b.textContent = i >= rows.length - 1 ? 'Finish ✓' : 'Next ▶';
+      if (k === 'start') b.disabled = !rows.length;
+    });
+
+    let phase = 'idle', countdown = '--:--', status = '', progress = 0, nextText = '', drift = null, finish = '';
+    if (!row) {
+      setText('tActivity', 'Add activities to the plan to use the timer');
+    } else if (idle) {
+      countdown = mmss(row.mins * 60);
+      setText('tActivity', 'Press Start when the class begins');
+      nextText = `First: ${a.label} (${row.mins} min)`;
+      const total = rows.reduce((s, r) => s + r.mins, 0);
+      finish = `Runs ${total} min`;
+    } else if (finished) {
+      phase = 'done'; countdown = '00:00'; progress = 1;
+      status = 'Lesson complete ✓';
+      drift = driftText(i);
+    } else {
+      const el = elapsed(), tgt = target(row), remaining = tgt - el;
+      phase = remaining <= 0 ? 'over' : remaining <= warnSecs() ? 'warn' : 'run';
+      countdown = remaining >= 0 ? mmss(Math.ceil(remaining)) : '+' + mmss(-remaining);
+      progress = Math.min(1, el / tgt);
+      status = timer.pausedAt ? 'Paused' : phase === 'over' ? "Time's up — move on when ready" : phase === 'warn' ? 'Coming to an end' : '';
+      if (timer.ext) status = [status, `+${Math.round(timer.ext / 60)} min added`].filter(Boolean).join(' · ');
+      const nx = rows[i + 1];
+      nextText = nx ? `Next: ${(ACTIVITIES[nx.type] || ACTIVITIES.custom).label} (${nx.mins} min)` : 'Last activity';
+      drift = driftText(i);
+      finish = `Ends ~${clock(projectedEnd(i))}`;
+
+      // Fire alerts once per activity (not while paused)
+      if (!timer.pausedAt) {
+        if (phase !== 'run' && !timer.warned) {
+          timer.warned = true; saveTimer();
+          if (phase === 'warn' && row.mins * 60 > warnSecs()) alertFor('warn', i);
+        }
+        if (phase === 'over' && !timer.ended) { timer.ended = true; saveTimer(); alertFor('end', i); }
+      }
+    }
+
+    // Timer bar
+    const card = $('timerCard');
+    card.dataset.phase = phase; card.dataset.paused = String(!!timer?.pausedAt);
+    if (!idle && row) {
+      setText('tActivity', finished ? 'Lesson complete' : a.label);
+      setText('tIndex', finished ? `${rows.length} activities` : `${i + 1} of ${rows.length} · ${a.chunk}`);
+    } else setText('tIndex', 'Lesson timer');
+    setDot('tDot', !idle && row && !finished ? a.colour : 'bg-slate-300');
+    setText('tStatus', status);
+    setText('tCountdown', countdown);
+    setText('tNext', nextText);
+    setText('tDrift', drift ? drift.text : '');
+    $('tDrift').className = 'font-medium ' + (drift ? drift.cls : '');
+    setText('tFinish', finish);
+    $('tProgress').style.width = (progress * 100) + '%';
+
+    // Teach mode
+    const teach = $('teach');
+    teach.dataset.phase = phase; teach.dataset.paused = String(!!timer?.pausedAt);
+    if (!teach.hidden) {
+      setText('teachMeta', `Week ${state.week} – Class ${state.classNo}${state.moduleCode ? ' · ' + state.moduleCode.toUpperCase() : ''}${state.sessionTitle ? ' · ' + state.sessionTitle : ''}`);
+      setText('teachChunk', row && !finished ? a.chunk : '');
+      setText('teachIndex', row && !finished ? `· ${i + 1} of ${rows.length}` : '');
+      setDot('teachDot', row && !finished ? a.colour : 'bg-slate-500');
+      setText('teachActivity', !row ? 'No activities planned' : finished ? 'Lesson complete' : idle ? `Up first: ${a.label}` : a.label);
+      setText('teachCountdown', countdown);
+      setText('teachStatus', idle ? 'Press Start when the class begins' : status);
+      $('teachProgress').style.width = (progress * 100) + '%';
+      setText('teachTask', row && !finished ? row.task : '');
+      const resHtml = row && !finished ? row.resources.map(x => `<span class="rounded-full bg-white/10 px-3 py-1 text-sm">${esc(x)}</span>`).join('') : '';
+      if ($('teachResources').innerHTML !== resHtml) $('teachResources').innerHTML = resHtml;
+      setText('teachNext', idle ? '' : nextText);
+      setText('teachDrift', drift ? drift.text : '');
+      setText('teachFinish', finish);
+    }
+
+    // Table rows
+    document.querySelectorAll('#rows tr[data-id]').forEach((tr, k) => {
+      const live = idle ? '' : finished || k < i ? 'done' : k === i ? 'current' : '';
+      if ((tr.dataset.live || '') !== live) tr.dataset.live = live;
+      tr.dataset.phase = live === 'current' ? phase : '';
+    });
+
+    // Tab title
+    if (!idle && row) {
+      const t = finished ? `✓ Lesson complete | ${baseTitle()}` : `${timer.pausedAt ? '❚❚ ' : ''}${countdown} · ${a.label}`;
+      if (document.title !== t) document.title = t;
+    }
+  }
+
+  // --- Timer events ---
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-timer]'); if (!b) return;
+    ensureAudio();
+    ({
+      start: startTimer, next: nextActivity, back: prevActivity, pause: togglePause, extend,
+      stop: stopTimer, teach: openTeach, exitTeach: closeTeach,
+      testSound: () => { const s = prefs.sound; prefs.sound = true; chime('end'); prefs.sound = s; flash(); notify('Test alert', 'Desktop notifications are working.'); }
+    })[b.dataset.timer]?.();
+  });
+  document.addEventListener('pointerdown', ensureAudio, { once: true });
+
+  document.addEventListener('keydown', e => {
+    if ($('teach').hidden) return;
+    const k = e.key;
+    if (k === 'ArrowRight' || k === 'PageDown') { e.preventDefault(); nextActivity(); }
+    else if (k === 'ArrowLeft' || k === 'PageUp') { e.preventDefault(); prevActivity(); }
+    else if (k === ' ') { e.preventDefault(); timer ? togglePause() : startTimer(); }
+    else if (k === 'Escape') closeTeach();
+  });
+
+  $('optWarn').addEventListener('change', e => {
+    prefs.warnMins = +e.target.value; savePrefs();
+    if (timer && !timer.finished) {
+      const i = curIndex(), remaining = target(state.rows[i]) - elapsed();
+      timer.warned = remaining <= warnSecs(); saveTimer();
+    }
+    tick();
+  });
+  $('optSound').addEventListener('change', e => { prefs.sound = e.target.checked; savePrefs(); });
+  $('optNotify').addEventListener('change', async e => {
+    const note = $('notifyNote'); note.hidden = true;
+    if (!e.target.checked) { prefs.notify = false; savePrefs(); return; }
+    if (!('Notification' in window)) {
+      e.target.checked = false; note.textContent = 'This browser does not support notifications.'; note.hidden = false; return;
+    }
+    let perm = Notification.permission;
+    if (perm === 'default') perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      e.target.checked = false; prefs.notify = false;
+      note.textContent = 'Notifications are blocked for this page. Allow them in the browser\'s site settings to use this.';
+      note.hidden = false;
+    } else prefs.notify = true;
+    savePrefs();
+  });
+  document.addEventListener('click', e => {
+    const m = $('alertMenu');
+    if (m.open && !m.contains(e.target)) m.removeAttribute('open');
+  });
+
+  // ---------- Events ----------
+  // Header fields
+  [['week', 'change'], ['classNo', 'change'], ['moduleCode', 'input'], ['sessionTitle', 'input'],
+   ['sessionLength', 'change'], ['startTime', 'change'], ['outcomes', 'input']]
+  .forEach(([id, ev]) => $(id).addEventListener(ev, e => {
+    state[id] = e.target.value;
+    if ((id === 'week' || id === 'classNo') && !timer) document.title = baseTitle();
+    if (id === 'startTime') renderRows(); else renderBudget();
+  }));
+
+  // Row field edits
+  $('rows').addEventListener('change', e => {
+    const tr = e.target.closest('tr'); if (!tr) return;
+    const row = state.rows.find(r => r.id === tr.dataset.id);
+    const f = e.target.dataset.field;
+    if (f === 'type') {
+      const prev = ACTIVITIES[row.type], next = ACTIVITIES[e.target.value];
+      // Only replace defaults the user hasn't customised
+      if (!row.task || row.task === prev.task) row.task = next.task;
+      if (!row.resources.length || sameList(row.resources, defaultResources(row.type))) row.resources = defaultResources(e.target.value);
+      if (row.mins === prev.mins) row.mins = next.mins;
+      row.type = e.target.value;
+      renderRows();
+    } else if (f === 'resourceAdd') {
+      const v = e.target.value;
+      if (v === OTHER) {
+        const wrap = tr.querySelector('[data-other-wrap]');
+        wrap.hidden = false;
+        wrap.querySelector('input').focus();
+        e.target.value = '';
+      } else if (v) {
+        row.resources.push(v); renderRows();
+      }
+    } else if (f === 'mins') {
+      row.mins = +e.target.value; renderRows();
+    }
+  });
+  $('rows').addEventListener('input', e => {
+    const tr = e.target.closest('tr'); if (!tr) return;
+    const f = e.target.dataset.field;
+    if (f === 'task') {
+      state.rows.find(r => r.id === tr.dataset.id)[f] = e.target.value; save();
+    }
+  });
+
+  // Resource tags: remove, and add a typed "Other" resource
+  function addOtherResource(tr) {
+    const input = tr.querySelector('[data-field="resourceOther"]');
+    const v = input.value.trim(); if (!v) return;
+    const row = state.rows.find(r => r.id === tr.dataset.id);
+    if (!row.resources.includes(v)) row.resources.push(v);
+    renderRows();
+  }
+  $('rows').addEventListener('click', e => {
+    const tr = e.target.closest('tr'); if (!tr) return;
+    const rm = e.target.closest('[data-res-remove]');
+    if (rm) {
+      state.rows.find(r => r.id === tr.dataset.id).resources.splice(+rm.dataset.resRemove, 1);
+      renderRows();
+    }
+    if (e.target.closest('[data-res-add-other]')) addOtherResource(tr);
+  });
+  $('rows').addEventListener('keydown', e => {
+    if (e.target.dataset.field !== 'resourceOther') return;
+    if (e.key === 'Enter') { e.preventDefault(); addOtherResource(e.target.closest('tr')); }
+    if (e.key === 'Escape') e.target.closest('[data-other-wrap]').hidden = true;
+  });
+
+  // Row actions
+  $('rows').addEventListener('click', e => {
+    const btn = e.target.closest('[data-row]'); if (!btn) return;
+    const i = state.rows.findIndex(r => r.id === btn.closest('tr').dataset.id);
+    const act = btn.dataset.row;
+    let newId;
+    if (act === 'up' && i > 0) [state.rows[i - 1], state.rows[i]] = [state.rows[i], state.rows[i - 1]];
+    if (act === 'down' && i < state.rows.length - 1) [state.rows[i + 1], state.rows[i]] = [state.rows[i], state.rows[i + 1]];
+    if (act === 'dup') { const c = { ...state.rows[i], resources: [...state.rows[i].resources], id: uid() }; newId = c.id; state.rows.splice(i + 1, 0, c); }
+    if (act === 'del') state.rows.splice(i, 1);
+    renderRows(newId);
+  });
+
+  // Toolbar + add
+  document.addEventListener('click', e => {
+    const act = e.target.closest('[data-action]')?.dataset.action; if (!act) return;
+    if (act === 'add') {
+      const r = rowFromTemplate([$('quickAdd').value]);
+      state.rows.push(r); renderRows(r.id);
+    }
+    if (act === 'downloadEditable' || act === 'downloadStatic') {
+      $('downloadMenu').removeAttribute('open');
+      if (act === 'downloadEditable') downloadFile(`${fileBase()}-editable.html`, buildEditableHtml());
+      else downloadFile(`${fileBase()}.html`, buildStaticHtml());
+    }
+    if (act === 'print') window.print();
+    if (act === 'theme') {
+      const dark = document.documentElement.classList.toggle('dark');
+      try { localStorage.setItem(STORE_KEY + '.theme', dark ? 'dark' : 'light'); } catch (e) {}
+    }
+    if (act === 'export') {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${state.moduleCode || 'module'}-week${state.week}-class${state.classNo}.json`;
+      a.click(); URL.revokeObjectURL(a.href);
+    }
+  });
+
+  document.addEventListener('click', e => {
+    const m = $('downloadMenu');
+    if (m.open && !m.contains(e.target)) m.removeAttribute('open');
+  });
+
+  $('templateSelect').addEventListener('change', e => {
+    const t = TEMPLATES[e.target.value]; e.target.value = '';
+    if (!t) return;
+    if (state.rows.length && !confirm('Replace the current activities with this template?')) return;
+    state.rows = t.rows.map(rowFromTemplate);
+    state.sessionLength = t.length;
+    if (t.title) state.sessionTitle = t.title;
+    renderHeader(); renderRows();
+  });
+
+  $('importFile').addEventListener('change', async e => {
+    const file = e.target.files[0]; if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      if (!Array.isArray(data.rows)) throw new Error('No rows');
+      state = Object.assign(defaultState(), data);
+      normaliseRows();
+      renderHeader(); renderRows();
+    } catch (err) { alert('That file does not look like a saved lesson plan.'); }
+    e.target.value = '';
+  });
+
+  // ---------- Init ----------
+  try {
+    const theme = localStorage.getItem(STORE_KEY + '.theme');
+    if (theme === 'dark' || (!theme && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
+  } catch (e) {}
+  load();
+  renderHeader();
+  $('optWarn').value = String(prefs.warnMins);
+  $('optSound').checked = !!prefs.sound;
+  $('optNotify').checked = !!prefs.notify && 'Notification' in window && Notification.permission === 'granted';
+  renderRows();
+  renderLegend();
+  setInterval(tick, 250);
+})();
+</script>
+</body>
+</html>
