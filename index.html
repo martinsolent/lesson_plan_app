@@ -1025,9 +1025,9 @@
 
   // New plan: keep the module details, clear the lesson content.
   function newPlan() {
-    if (!confirm('Start a new plan? The current activities, title and outcomes will be cleared. Use "Save plan" first if you want to keep this one.')) return;
-    const { week, classNo, moduleCode, sessionLength, startTime } = state;
-    state = Object.assign(defaultState(), { week, classNo, moduleCode, sessionLength, startTime });
+    if (!confirm('Start a new plan? The module code, title, outcomes and activities will be cleared. Use "Save plan" first if you want to keep this one.')) return;
+    const { week, classNo, sessionLength, startTime } = state;
+    state = Object.assign(defaultState(), { week, classNo, sessionLength, startTime });
     timer = null; saveTimer();
     renderHeader(); renderRows();
   }

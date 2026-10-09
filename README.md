@@ -159,8 +159,8 @@ Built-in resources: Figma, GitHub, GitHub Desktop, Graph paper, Miro, Mobile pho
 
 The app opens with a blank plan. To start the next lesson, click **New plan** in the toolbar. After you confirm, it:
 
-- **keeps** the week, class number, module code, class length and start time, which usually carry over to the next lesson
-- **clears** the session title, learning outcomes and all activities
+- **keeps** the week, class number, class length and start time, which usually carry over to the next lesson
+- **clears** the module code, session title, learning outcomes and all activities
 - **resets** the lesson timer
 
 Click **Save plan** first if you want to keep the current lesson, because the browser only holds one working plan at a time. To reuse a structure you like, save it as a `.json` file and open it again with **Open plan**. In effect, it becomes your own template.
