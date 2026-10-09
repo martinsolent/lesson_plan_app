@@ -13,7 +13,7 @@ Everything lives in one file, [`index.html`](index.html). There is no build step
 - [Running the lesson with the timer](#running-the-lesson-with-the-timer)
 - [Saving, sharing and printing](#saving-sharing-and-printing)
 - [Activity library](#activity-library)
-- [Templates](#templates)
+- [Starting a new plan](#starting-a-new-plan)
 - [Tips for teaching with it](#tips-for-teaching-with-it)
 - [Customising the app](#customising-the-app)
 - [Troubleshooting](#troubleshooting)
@@ -60,7 +60,7 @@ Each row in the table is one activity:
 - **Duration:** 5–90 minutes.
 - **Row actions:** ↑ / ↓ reorder, ⧉ duplicate, ✕ delete.
 
-To add an activity, pick a type in the dropdown under the table and click **+ Add activity**. You can also start from a template using **Load template…** in the toolbar.
+To add an activity, pick a type in the dropdown under the table and click **+ Add activity**.
 
 ### 3. Check the time budget
 
@@ -155,16 +155,15 @@ Built-in resources: Figma, GitHub, GitHub Desktop, Graph paper, Miro, Mobile pho
 
 ---
 
-## Templates
+## Starting a new plan
 
-| Template | Length | Structure |
-| --- | --- | --- |
-| **Module introduction** | 2 hr | Welcome → Starter → Mini-lecture → Check → Group activity → Feedback → Break → Mini-lecture → Guided practice → Summary → Next steps |
-| **Practical workshop** | 2 hr | Welcome → Recap → Demo → Guided practice → Break → Independent task → Share → Directed learning |
-| **Lecture** | 1 hr | Recap → Mini-lecture → Check → Example → Pair activity → Summary |
-| **Blank plan** | 2 hr | Empty, to build from scratch |
+The app opens with a blank plan. To start the next lesson, click **New plan** in the toolbar. After you confirm, it:
 
-Loading a template replaces the current activities. You'll be asked to confirm first.
+- **keeps** the week, class number, module code, class length and start time, which usually carry over to the next lesson
+- **clears** the session title, learning outcomes and all activities
+- **resets** the lesson timer
+
+Click **Save plan** first if you want to keep the current lesson, because the browser only holds one working plan at a time. To reuse a structure you like, save it as a `.json` file and open it again with **Open plan**. In effect, it becomes your own template.
 
 ---
 
@@ -175,7 +174,7 @@ Loading a template replaces the current activities. You'll be asked to confirm f
 - **Plan to the minute, then leave slack.** Aim for the budget bar to be green, but keep one flexible activity (such as Independent task) near the end that you can shorten if you're behind.
 - **Watch the drift, not just the countdown.** If you're "5 min behind", trim a later activity rather than rushing the current one.
 - **Write outcomes first.** Then check that every activity supports at least one of them.
-- **Reuse plans.** Save each week as a `.json` file, then open last year's file, change the week number and adjust.
+- **Reuse plans.** A saved plan works as your own template. Save each week as a `.json` file, then open last year's file, change the week number and adjust.
 
 ---
 
@@ -188,7 +187,6 @@ All configuration is in the `<script>` block of `index.html`:
 | `ACTIVITIES` | Activity types: label, chunk, colour, default minutes, default task text and default resource |
 | `RESOURCES` | Resources offered in the dropdown (sorted automatically) |
 | `DURATIONS` | Duration options in minutes |
-| `TEMPLATES` | Built-in templates, written as `[activityKey, minutes, optionalTaskText]` |
 | `EXTEND_SECS` | How much time **+5 min** adds |
 
 The class length options (`#sessionLength`) and the warning times (`#optWarn`) are set in the HTML markup above the script.

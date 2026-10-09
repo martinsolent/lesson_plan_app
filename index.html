@@ -90,13 +90,7 @@
   <!-- Toolbar -->
   <div class="no-print relative z-40 flex flex-wrap items-center gap-2 mb-6">
     <h1 class="text-sm font-semibold tracking-wide uppercase text-slate-500 dark:text-slate-400 mr-auto">Lesson Plan Builder</h1>
-    <select id="templateSelect" class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
-      <option value="">Load template…</option>
-      <option value="intro2h">Module introduction (2 hr, chunked)</option>
-      <option value="practical2h">Practical workshop (2 hr)</option>
-      <option value="lecture1h">Lecture (1 hr, chunked)</option>
-      <option value="blank">Blank plan</option>
-    </select>
+    <button data-action="new" class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800" title="Clear the activities and start a new plan">New plan</button>
     <button data-action="export" class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800" title="Save this plan as a file you can open again later">Save plan</button>
     <label class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer" title="Open a plan file you saved earlier">
       Open plan<input id="importFile" type="file" accept=".json,application/json" class="hidden">
@@ -317,22 +311,6 @@
 
   const DURATIONS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 75, 90];
 
-  const TEMPLATES = {
-    intro2h: { length: 120, title: 'Module Introduction', rows: [
-      ['welcome', 5], ['starter', 10], ['lecture', 15, 'Module overview: aims, structure, assessment and key dates.'],
-      ['check', 5], ['pair', 20, 'Groups explore the module page and identify questions about the assessment.'],
-      ['feedback', 10], ['brk', 10], ['lecture', 15], ['guided', 15], ['summary', 10], ['nextsteps', 5]
-    ]},
-    practical2h: { length: 120, title: 'Practical Workshop', rows: [
-      ['welcome', 5], ['recap', 10], ['demo', 15], ['guided', 20], ['brk', 10],
-      ['independent', 35], ['share', 15], ['directed', 10]
-    ]},
-    lecture1h: { length: 60, title: 'Lecture', rows: [
-      ['recap', 5], ['lecture', 15], ['check', 5], ['example', 15], ['pair', 10], ['summary', 10]
-    ]},
-    blank: { length: 120, title: '', rows: [] }
-  };
-
   const $ = id => document.getElementById(id);
   const uid = () => Math.random().toString(36).slice(2, 9);
 
@@ -346,12 +324,11 @@
   let state = defaultState();
 
   function defaultState() {
-    const s = { week: 12, classNo: 1, moduleCode: '', sessionTitle: 'Module Introduction',
+    const s = { week: 12, classNo: 1, moduleCode: '', sessionTitle: '',
       sessionLength: 120, startTime: '09:00', outcomes: '', rows: [] };
-    s.rows = TEMPLATES.intro2h.rows.map(rowFromTemplate);
     return s;
   }
-  function rowFromTemplate([type, mins, task]) {
+  function newRow([type, mins, task]) {
     const a = ACTIVITIES[type];
     return { id: uid(), type, mins: mins ?? a.mins, task: task ?? a.task, resources: defaultResources(type) };
   }
@@ -431,7 +408,7 @@
     let t = toMins(state.startTime);
     const tbody = $('rows');
     if (!state.rows.length) {
-      tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-10 text-center text-slate-500">No activities yet. Add one below or load a template.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-10 text-center text-slate-500">No activities yet. Add one below to get started.</td></tr>`;
       renderBudget(); return;
     }
     tbody.innerHTML = state.rows.map((r, i) => {
@@ -1017,8 +994,9 @@
   // Toolbar + add
   document.addEventListener('click', e => {
     const act = e.target.closest('[data-action]')?.dataset.action; if (!act) return;
+    if (act === 'new') newPlan();
     if (act === 'add') {
-      const r = rowFromTemplate([$('quickAdd').value]);
+      const r = newRow([$('quickAdd').value]);
       state.rows.push(r); renderRows(r.id);
     }
     if (act === 'downloadEditable' || act === 'downloadStatic') {
@@ -1045,15 +1023,14 @@
     if (m.open && !m.contains(e.target)) m.removeAttribute('open');
   });
 
-  $('templateSelect').addEventListener('change', e => {
-    const t = TEMPLATES[e.target.value]; e.target.value = '';
-    if (!t) return;
-    if (state.rows.length && !confirm('Replace the current activities with this template?')) return;
-    state.rows = t.rows.map(rowFromTemplate);
-    state.sessionLength = t.length;
-    if (t.title) state.sessionTitle = t.title;
+  // New plan: keep the module details, clear the lesson content.
+  function newPlan() {
+    if (!confirm('Start a new plan? The current activities, title and outcomes will be cleared. Use "Save plan" first if you want to keep this one.')) return;
+    const { week, classNo, moduleCode, sessionLength, startTime } = state;
+    state = Object.assign(defaultState(), { week, classNo, moduleCode, sessionLength, startTime });
+    timer = null; saveTimer();
     renderHeader(); renderRows();
-  });
+  }
 
   $('importFile').addEventListener('change', async e => {
     const file = e.target.files[0]; if (!file) return;
