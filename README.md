@@ -8,15 +8,23 @@ Everything lives in one file, [`index.html`](index.html). There is no build step
 
 ## Contents
 
-- [Running the app](#running-the-app)
-- [Planning a lesson](#planning-a-lesson)
-- [Running the lesson with the timer](#running-the-lesson-with-the-timer)
-- [Saving, sharing and printing](#saving-sharing-and-printing)
-- [Activity library](#activity-library)
-- [Starting a new plan](#starting-a-new-plan)
-- [Tips for teaching with it](#tips-for-teaching-with-it)
-- [Customising the app](#customising-the-app)
-- [Troubleshooting](#troubleshooting)
+- [Lesson Plan Builder](#lesson-plan-builder)
+  - [Contents](#contents)
+  - [Running the app](#running-the-app)
+  - [Quick start](#quick-start)
+  - [Starting a new plan](#starting-a-new-plan)
+  - [Planning a lesson](#planning-a-lesson)
+    - [1. Fill in the header](#1-fill-in-the-header)
+    - [2. Build the activity list](#2-build-the-activity-list)
+    - [3. Check the time budget](#3-check-the-time-budget)
+  - [Running the lesson with the timer](#running-the-lesson-with-the-timer)
+    - [Alerts](#alerts)
+    - [Teach mode](#teach-mode)
+  - [Saving, sharing and printing](#saving-sharing-and-printing)
+  - [Activity library](#activity-library)
+  - [Tips for teaching with it](#tips-for-teaching-with-it)
+  - [Customising the app](#customising-the-app)
+  - [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -34,6 +42,32 @@ python3 -m http.server 8000
 Then open <http://localhost:8000>. Press `Ctrl+C` in the terminal to stop the server.
 
 The page loads Tailwind CSS and Google Fonts from the internet, so it needs a connection to display properly.
+
+---
+
+## Quick start
+
+1. Open the app. It starts with a blank plan.
+2. Fill in the header: week, class, module code, session title, class length and start time.
+3. Write the learning outcomes.
+4. Add activities with **+ Add activity**, and set each one's task, resources and duration.
+5. Check that the **Time planned** bar is green.
+6. Click **Save plan** to keep a copy.
+7. In class, click **▶ Start lesson**, then **Next ▶** as you move through the activities.
+
+---
+
+## Starting a new plan
+
+The app opens with a blank plan: no activities and an empty module code, title and outcomes. The defaults are week 12, class 1, a 2-hour class and a 09:00 start time.
+
+To start another lesson, click **New plan** in the toolbar. After you confirm, it:
+
+- **keeps** the week, class number, class length and start time, which usually carry over to the next lesson
+- **clears** the module code, session title, learning outcomes and all activities
+- **resets** the lesson timer
+
+Click **Save plan** first if you want to keep the current lesson, because the browser only holds one working plan at a time. To reuse a structure you like, save it as a `.json` file and open it again with **Open plan**. In effect, it becomes your own template.
 
 ---
 
@@ -55,12 +89,12 @@ The page loads Tailwind CSS and Google Fonts from the internet, so it needs a co
 Each row in the table is one activity:
 
 - **Timings:** start and end clock times, calculated automatically from the start time and the durations of the rows above. The coloured bar shows which *chunk* the activity belongs to (see [Activity library](#activity-library)).
-- **Task:** choose an activity type and edit the description. Changing the type fills in a suggested description.
-- **Resource:** starts empty. Add one or more resources from the dropdown, which become removable chips. Choose **Other…** to type your own.
+- **Task:** choose an activity type and edit the description. Changing the type fills in a suggested description and duration, but only where you haven't already edited them.
+- **Resource:** always starts empty. Nothing is added for you. Add one or more resources from the dropdown, which become removable chips, or choose **Other…** to type your own.
 - **Duration:** 5–90 minutes.
 - **Row actions:** ↑ / ↓ reorder, ⧉ duplicate, ✕ delete.
 
-To add an activity, pick a type in the dropdown under the table and click **+ Add activity**.
+To add an activity, pick a type in the dropdown under the table and click **+ Add activity**. It is added to the end of the list with that type's suggested task text and duration and no resources.
 
 ### 3. Check the time budget
 
@@ -126,8 +160,9 @@ Keyboard shortcuts in teach mode (these also work with most presentation clicker
 
 | Toolbar option | Produces | Use it to |
 | --- | --- | --- |
-| **Save plan** | A `.json` file, for example `DES101-week12-class1.json` | Keep a copy of a plan, back it up or move it to another computer. |
-| **Open plan** | Loads a saved `.json` file | Reopen a plan you saved earlier. |
+| **New plan** | A blank plan that keeps the week, class, length and start time | Start the next lesson. See [Starting a new plan](#starting-a-new-plan). |
+| **Save plan** | A `.json` file, for example `DES101-week12-class1.json` (`module-week12-class1.json` if the module code is blank) | Keep a copy of a plan, back it up or move it to another computer. |
+| **Open plan** | Loads a saved `.json` file | Reopen a plan you saved earlier. It replaces the plan currently on screen. |
 | **Download HTML ▸ Editable page** | A full copy of the tool with this plan built in | Share a working, editable plan with a colleague. Each copy keeps its own saved state in the browser. |
 | **Download HTML ▸ Static plan (read-only)** | A plain HTML table with no scripts | Embed the plan in a website or VLE (for example Moodle or Blackboard). |
 | **Print / PDF** | A clean printout with toolbars and buttons removed | Print a paper copy, or choose *Save as PDF* in the print dialog. |
@@ -141,7 +176,7 @@ Keyboard shortcuts in teach mode (these also work with most presentation clicker
 
 Activities are grouped into colour-coded **chunks**, which helps you structure a class into short, varied segments:
 
-| Chunk | Colour | Activities (default minutes) |
+| Chunk | Colour | Activities (suggested minutes) |
 | --- | --- | --- |
 | **Opening** | Grey | Welcome (5), Starter (10), Set-up (5), Recap (10) |
 | **Input** | Blue | Mini-Lecture (15), Demo (10), Example (10) |
@@ -151,19 +186,7 @@ Activities are grouped into colour-coded **chunks**, which helps you structure a
 | **Close** | Violet | Recap (5), Summary (10), Next steps (5), Directed Learning (5) |
 | **Other** | Light grey | Custom activity (10) |
 
-Built-in resources: Figma, GitHub, GitHub Desktop, Graph paper, Miro, Mobile phone, Notes, OBS Studio, Pen & Paper, Quiz, Slides, SOL, Sticky notes, UX Lab, UX Lab computer, UX Lab webcams. Use **Other…** to add anything else.
-
----
-
-## Starting a new plan
-
-The app opens with a blank plan. To start the next lesson, click **New plan** in the toolbar. After you confirm, it:
-
-- **keeps** the week, class number, class length and start time, which usually carry over to the next lesson
-- **clears** the module code, session title, learning outcomes and all activities
-- **resets** the lesson timer
-
-Click **Save plan** first if you want to keep the current lesson, because the browser only holds one working plan at a time. To reuse a structure you like, save it as a `.json` file and open it again with **Open plan**. In effect, it becomes your own template.
+Activities don't come with resources. Choose them yourself from these built-in options: Figma, GitHub, GitHub Desktop, Graph paper, Miro, Mobile phone, Notes, OBS Studio, Pen & Paper, Quiz, Slides, SOL, Sticky notes, UX Lab, UX Lab computer, UX Lab webcams. Use **Other…** for anything else.
 
 ---
 
